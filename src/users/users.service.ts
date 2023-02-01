@@ -32,6 +32,7 @@ export class UsersService {
       let s = await this.userRepository.save(userDto);
       return s;
     } catch (err) {
+      console.log(err)
       throw new HttpException('Jebulin', 500);
     }
   }

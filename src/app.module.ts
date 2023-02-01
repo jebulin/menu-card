@@ -16,8 +16,8 @@ import { AuthModule } from './auth/auth.module';
     "synchronize": true,
     "entities": ["dist/**/*.entity{.js,.ts}"]
 }),
-AuthModule,
     UsersModule,
+    AuthModule,
     ],
   controllers: [AppController],
   providers: [AppService],
