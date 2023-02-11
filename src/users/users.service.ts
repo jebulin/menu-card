@@ -13,9 +13,9 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(userDto: UserDto) {
+  async create(userDto: UserDto, loggeduser) {
     try {
-      userDto.createdBy = 1;
+      userDto.createdBy = loggeduser.id;
 
       let alreadyDataPresent = await this.findOneByEmail(userDto.email);
       if (alreadyDataPresent) {

@@ -1,19 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/create-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesAllowed } from 'src/auth/Decorator/roles.decorator';
+import { Roles } from 'src/shared/roles.enum';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 // import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post()
-  async create(@Body() userDto: UserDto) {
-    return await this.usersService.create(userDto);
+  async create(@Body() userDto: UserDto,@Request() req:any) {
+    return await this.usersService.create(userDto, req.user);
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @RolesAllowed(Roles.ADMIN_USER,Roles.SUPER_ADMIN)
   @Get()
-  async findAll() {
+  async findAll(@Request() req:any) {
+    console.log(req.user)
+    // console.log(req.username)
     return await this.usersService.findAll();
   }
 
