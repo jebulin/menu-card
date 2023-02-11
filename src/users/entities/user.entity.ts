@@ -12,8 +12,17 @@ export class User {
     @Column({name: "last_name"})
     lastName: string;
 
-    @Column()
+    @Column({unique:true})
     email: string;
+
+    @Column({name:"phone_number",unique:true})
+    phoneNumber: string;
+
+    @Column({name:"shop_name"})
+    shopName: string;
+
+    @Column({type:'text'})
+    address: string;
 
     @Column({name: "role_id"})
     roleId: number;
@@ -21,7 +30,13 @@ export class User {
     @Column()
     password: string;
 
-    @Column({name: "created_by"})
+    @Column({name:"start_date", nullable:true})
+    startDate: string ;
+
+    @Column({name:"end_date", nullable:true})
+    endDate: string ;
+
+    @Column({name: "created_by", nullable:true})
     createdBy: number;
 
     @Column({name: "created_at", type: "timestamp", default: ()=> "CURRENT_TIMESTAMP"})
@@ -34,5 +49,5 @@ export class User {
     updatedAt: string;
 
     @Column({default: 1})
-    status: number;
+    status: number; 
 }

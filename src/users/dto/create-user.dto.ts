@@ -4,6 +4,10 @@ export class UserDto {
     lastName: string;
     email: string;
     roleId: number;
+    phoneNumber:string;
+    shopName:string;
+    startDate:string;
+    endDate:string;
     password: string;
     createdBy?: number;
     createdAt?: string;

@@ -26,11 +26,14 @@ export class UsersService {
         userDto.password,
         await bcrypt.genSalt(),
       );
-
+        
       userDto.password = password;
-
+      if (userDto.roleId != 1 && userDto.hasOwnProperty("startDate") && userDto.hasOwnProperty("endDate")){
+        delete userDto.startDate ;
+        delete userDto.endDate ;
+      }
       let s = await this.userRepository.save(userDto);
-      return s;
+      return s.email;
     } catch (err) {
       console.log(err)
       throw new HttpException('Jebulin', 500);
