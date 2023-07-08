@@ -16,7 +16,6 @@ export class UsersService {
   async create(userDto: UserDto, loggeduser) {
     try {
       userDto.createdBy = loggeduser.id;
-
       let alreadyDataPresent = await this.findOneByEmail(userDto.email);
       if (alreadyDataPresent) {
         return { message: 'User already present', statusCode: 500 };
