@@ -4,32 +4,77 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
+import { Roles } from 'src/shared/roles.enum';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-  ){}
+  ) { }
 
-  async create(createProductDto: CreateProductDto) {
-    let product = this.productsRepository.save(createProductDto)
-    return 'This action adds a new product';
+  async create(createProductDto: CreateProductDto, loggedUser: any) {
+
+    await this.findOneByName(createProductDto.name, loggedUser);
+    createProductDto.createdBy = loggedUser.id;
+    createProductDto.shopId = loggedUser.shopInfo.shopId
+    await this.productsRepository.save(createProductDto)
+    return "Product saved successfully";
+
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findOneByName(name: string, loggedUser: any) {
+    try {
+      let product = await this.productsRepository.findOne({ where: { name: name, shopId: loggedUser.shopInfo.shopId } })
+      if (!product)
+        return "Product Name is not present";
+
+      throw { message: "Product name is present in db", statusCode: 404 };
+    } catch (err) {
+      console.log(err);
+      throw { message: err.message, statusCode: err.statusCode };
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async update(updateProductDto: UpdateProductDto, loggedUser: any) {
+
+    let product = await this.findOne(updateProductDto.id);
+
+    if (!product)
+      throw { message: "Product is not present in db", statusCode: 404 };
+
+    if (loggedUser.roleId.includes(Roles.CO_PILOT)) {// co pilot is alowed only to update stock
+      let keys = Object.keys(updateProductDto);
+      if (keys.length != 2 && !keys.includes('id') && !keys.includes('stock')) {
+        throw { message: "Product is not present in db", statusCode: 404 };
+      }
+    }
+
+    this.productsRepository.merge(product, updateProductDto);
+
+    let savedProduct = await this.productsRepository.update(product.id, product);
+
+    return savedProduct;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async findAll(loggedUser: any) {
+    return await this.productsRepository.find({ where: { shopId: loggedUser.shopInfo.shopId } });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async findOne(id: number) {
+    return await this.productsRepository.findOne({ where: { id: id } });
+  }
+
+
+
+  async remove(id: number, loggedUser: any) {
+    let product = await this.findOne(id);
+    if (!product) throw { message: "product not found", statusCode: 404 };
+
+    product.updatedBy = loggedUser.id;
+    product.status = 3;
+
+    await this.productsRepository.update(id, product)
+    return `Product removed succesfully`;
   }
 }

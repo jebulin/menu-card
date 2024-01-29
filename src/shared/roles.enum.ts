@@ -1,5 +1,6 @@
 export enum Roles{
     SUPER_ADMIN=1,
-    ADMIN_USER=2,
-    STANDARD_USER=3
+    OWNER=2,
+    PILOT=3,
+    CO_PILOT=4
 }

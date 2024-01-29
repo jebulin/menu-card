@@ -1,15 +1,15 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor, RequestTimeoutException } from "@nestjs/common";
 import { catchError, map, Observable, of, timeout, TimeoutError } from "rxjs";
 
-export interface Response{
-    data?:any;
-    status?:Boolean;
-    statusCode?: number| string;
+export interface Response {
+    data?: any;
+    status?: Boolean;
+    statusCode?: number | string;
     error?: any
 }
 
 @Injectable()
-export class RequestInterceptor implements NestInterceptor{
+export class RequestInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> {
         // const request = context.switchToHttp().getRequest();
 
@@ -18,29 +18,27 @@ export class RequestInterceptor implements NestInterceptor{
         const response = context.switchToHttp().getResponse();
 
         return next.handle().pipe(
-            map(data =>{
-                responseObject.statusCode = response.statusCode;
+            map(data => {
+                responseObject.statusCode = data.statusCode || 200;
                 responseObject.status = true;
                 responseObject.data = data;
                 return responseObject;
             }),
-timeout(30000),
-catchError((err)=>{
-    console.log(err);
-    responseObject.status = false;
-    if(err instanceof TimeoutError ){
-        responseObject.statusCode = new RequestTimeoutException().getStatus();
-        responseObject.error = new RequestTimeoutException().message;
-    }else if(err.hasOwnProperty("response")){
-        responseObject.statusCode = err.response.statusCode || 500;
-        responseObject.error = err.response.error || String(err);
-    }else{
-        responseObject.statusCode = err.error!=undefined ? err.error.statusCode: err.statusCode!=undefined? err.statusCode: 500;
-        responseObject.error = err.error!=undefined ? err.error.message: err.message!=undefined? err.message: String(err);
-    }
-
-    return of(responseObject)
-})
+            timeout(20000),
+            catchError((err) => {
+                responseObject.status = false;
+                if (err instanceof TimeoutError) {
+                    responseObject.statusCode = new RequestTimeoutException().getStatus();
+                    responseObject.error = new RequestTimeoutException().message;
+                } else if (err.hasOwnProperty("response")) {
+                    responseObject.statusCode = err.response.statusCode ? err.response.statusCode : err.statusCode || 500;
+                    responseObject.error = err.response.message || String(err.response);
+                } else {
+                    responseObject.statusCode = err.statusCode ? err.statusCode : 500;
+                    responseObject.error = err.message ? err.message : String(err);
+                }
+                return of(responseObject)
+            })
         )
     }
 }
