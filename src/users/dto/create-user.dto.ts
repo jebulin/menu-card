@@ -3,15 +3,21 @@ import { IsNotEmpty } from "class-validator";
 
 export class UserDto {
     id?: number;
-    @IsNotEmpty()
-    @ApiProperty()
-    shopId: number;
 
     @IsNotEmpty()
     @ApiProperty()
     firstName: string;
-    // lastName: string;
+
+    @IsNotEmpty()
+    @ApiProperty()
+    lastName: string;
+
+    @IsNotEmpty()
+    @ApiProperty()
     email: string;
+
+    @IsNotEmpty()
+    @ApiProperty()
     roleId: number;
     // phoneNumber:string;
     password: string;

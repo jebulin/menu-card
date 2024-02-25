@@ -7,7 +7,6 @@ export const Loggeduser = createParamDecorator(
     //Add shopInfo to the user object
     request.user["shopInfo"] = {
       "shopId": headers["x-shop-id"],
-    //   "userId": headers["x-user-id"] || null, "competitorId": headers["x-competitor-id"] || null
     }
     return request.user;
   },

@@ -1,4 +1,4 @@
-export class ResetPasswordDTO {
+export class ChangePassDTO {
     oldPassword: string;
     newPassword: string
 }

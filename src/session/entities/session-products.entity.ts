@@ -1,22 +1,21 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { Base } from "./base.entity";
+import { Column, Entity, PrimaryGeneratedColumn, Unique } from "typeorm";
 
-@Entity()
-export class ShopUsers{
-
+@Entity('session_products')
+@Unique(['shopId', "productId"])
+export class SessionProduct {
     @PrimaryGeneratedColumn()
-    id:number;
+    id: number;
 
-    @Column()
-    shopId:number;
+    @Column({ name: "shop_id" })
+    shopId: number;
 
-    @Column()
-    userId:number;
+    @Column({ name: "session_id" })
+    sessionId: number;
 
-    @Column()
-    roleId:number;
+    @Column({ name: "product_id" })
+    productId: number;
 
-    @Column({ name: "created_by", nullable: true })
+    @Column({ name: "created_by" })
     createdBy: number;
 
     @Column({ name: "created_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
@@ -30,6 +29,4 @@ export class ShopUsers{
 
     @Column({ default: 1 })
     status: number;
-
-    
 }

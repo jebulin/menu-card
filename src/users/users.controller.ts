@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request,UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/create-user.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -6,7 +6,7 @@ import { RolesAllowed } from 'src/auth/Decorator/roles.decorator';
 import { Roles } from 'src/shared/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { RequestInterceptor } from 'src/shared/interceptors/request.interceptor';
-import { ResetPasswordDTO } from './dto/reset-password-dto';
+import { ChangePassDTO } from './dto/reset-password-dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags, ApiHeader, ApiBearerAuth, ApiUnauthorizedResponse, ApiOkResponse, ApiNotFoundResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/shared/guard/jwt.guard';
@@ -18,33 +18,45 @@ import { Loggeduser } from 'src/auth/Decorator/loggeduser.decorator';
   name: 'X-Shop-Id',
   description: 'Shop ID'
 })
-@UseInterceptors(RequestInterceptor)
 @ApiBearerAuth()
 @ApiUnauthorizedResponse()
 @ApiOkResponse()
 @ApiNotFoundResponse()
 @ApiInternalServerErrorResponse()
-@UseGuards(JwtAuthGuard,RolesGuard)
+@UseGuards(JwtAuthGuard)
 @UseInterceptors(RequestInterceptor)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
-  @RolesAllowed(Roles.SUPER_ADMIN,Roles.OWNER,Roles.PILOT)
-  @Post()
-  async create(@Body() userDto: UserDto,@Loggeduser() loggedUser:any) {
+  @RolesAllowed(Roles.SUPER_ADMIN, Roles.OWNER, Roles.PILOT)
+  @UseGuards(RolesGuard)
+  @Post('create')
+  async create(@Body() userDto: UserDto, @Loggeduser() loggedUser: any) {
     return await this.usersService.create(userDto, loggedUser);
   }
 
-  // @Get()
-  // async findAll(@Request() req:any) {
-  //   return await this.usersService.findAll();
+  @RolesAllowed(Roles.SUPER_ADMIN, Roles.OWNER, Roles.PILOT)
+  @UseGuards(RolesGuard)
+  @Post('update-details')
+  update(@Body() updateUserDto: UpdateUserDto , @Loggeduser() loggedUser: any) {
+    return this.usersService.updateDetails(updateUserDto, loggedUser);
+  }
+
+  @RolesAllowed(Roles.SUPER_ADMIN, Roles.OWNER, Roles.PILOT, Roles.CO_PILOT)
+  @UseGuards(RolesGuard)
+  @Post('change-password')
+  async changePassword(@Body() changePassDTO:ChangePassDTO, @Loggeduser() loggedUser: any) {
+    return await this.usersService.changePassword(changePassDTO, loggedUser);
+  }
+
+  // @RolesAllowed(Roles.SUPER_ADMIN, Roles.OWNER, Roles.PILOT)
+  // @UseGuards(RolesGuard)
+  // @Get('get-all')
+  // async findAll(@Loggeduser() loggedUser: any) {
+  //   return await this.usersService.findAll(loggedUser);
   // }
 
-  // @RolesAllowed(Roles.CO_PILOT,Roles.SUPER_ADMIN, Roles.PILOT)
-  // @Post('change-password')
-  // async changePassword(@Body() resetPasswordDto:ResetPasswordDTO,  @Request() req:any) {
-  //   return await this.usersService.changePassword(resetPasswordDto, req.user);
-  // }
+
 
   // @Post('email')
   // findOneByEmail(@Body() data: {email: string}) {
@@ -56,12 +68,9 @@ export class UsersController {
   //   return this.usersService.findOneById(+id);
   // }
 
-  
 
-  // @Post(':id')
-  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   return this.usersService.update(+id, updateUserDto);
-  // }
+
+  
 
   // @Post(':id')
   // remove(@Param('id') id: string) {

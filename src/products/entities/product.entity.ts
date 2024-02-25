@@ -1,7 +1,8 @@
+import { Base } from "src/shared/entities/base.entity";
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("product")
-export class Product {
+export class Product{
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -40,5 +41,6 @@ export class Product {
 
     @Column({ default: 1 })
     status: number;
+
 
 }

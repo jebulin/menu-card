@@ -1,7 +1,8 @@
+import { Base } from 'src/shared/entities/base.entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
-@Entity()
-export class User {
+@Entity('users')
+export class User{
 
     @PrimaryGeneratedColumn()
     id: number;
@@ -39,4 +40,5 @@ export class User {
 
     @Column({ default: 1 })
     status: number;
+
 }

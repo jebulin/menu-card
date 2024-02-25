@@ -6,7 +6,7 @@ import { UserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { ShopUsers } from 'src/shared/entities/shop-users.entity';
-import { ResetPasswordDTO } from './dto/reset-password-dto';
+import { ChangePassDTO } from './dto/reset-password-dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/shared/roles.enum';
 import { STATUS } from 'src/shared/status.enum';
@@ -21,18 +21,12 @@ export class UsersService {
     private readonly shopUsersRepository: Repository<ShopUsers>
   ) { }
 
-  async create(userDto: UserDto, loggeduser) {
+  async create(userDto: UserDto, loggedUser) {
     try {
-      userDto.createdBy = loggeduser.id;
-      let roleId = userDto.roleId || 0;
+      userDto.createdBy = loggedUser.id;
+      let roleId = userDto?.roleId || 0;
 
-      let savedUser = null;
-
-      if (loggeduser.email == userDto.email) {
-        throw { statusCode: 409, message: "User already exist" }
-      }
-
-      this.checkRole(roleId, loggeduser);
+      this.checkRole(roleId, loggedUser);
 
       let user = await this.findOneByEmail(userDto.email);
 
@@ -43,110 +37,106 @@ export class UsersService {
       if (roleId == Roles.PILOT || roleId == Roles.CO_PILOT || roleId == Roles.OWNER) {
         userDto.roleId = 0;
       }
-      let password = this.generatePassword();
-      if (user) {
 
-        delete userDto.firstName;
-        // delete userDto.lastName;
-        this.userRepository.merge(user, userDto);
-        user.password = password;
+      if (!user) {
+        let password = this.generatePassword();
+        userDto.password = await this.encryptPassword(password);
+        console.log("password:", password)
+        userDto.createdBy = loggedUser.id;
+        user = await this.userRepository.save(userDto);
+      } else if (user.status in [STATUS.InActive, STATUS.Deleted]) {
         user.status = STATUS.Active;
-        user.updatedBy = loggeduser.id;
         user = await this.userRepository.save(user);
-
-      } else {
-        userDto.createdBy = loggeduser.id;
       }
 
-      // if (alreadyUserPresent) {
+      if (user) {
 
-      //   let shopUsers = await this.shopUsersRepository.findOne({ where: { shopId: userDto.shopId, userId: userDto.id } })
-      //   if (shopUsers) {
-      //     return { message: 'User already present', statusCode: 302 };
-      //   }
-      // } else {
-      //   let password = await this.encryptPassword(userDto.password);
+        let shopUser = await this.shopUsersRepository.findOne({ where: { shopId: loggedUser.shopInfo.shopId, userId: user.id } })
 
-      //   userDto.password = password;
-      //   savedUser = await this.userRepository.save(userDto);
-      // }
+        if (shopUser && shopUser.status == STATUS.Active) {
+          return { message: 'User already present', statusCode: 302 };
+        } else if (shopUser.status in [STATUS.Deleted, STATUS.InActive]) {
+          shopUser.updatedBy = loggedUser.id;
+          shopUser.status = STATUS.Active;
+          await this.shopUsersRepository.save(shopUser);
+        } else {
+          let shopUser: Partial<ShopUsers> = {
+            shopId: loggedUser.shopInfo.shopId,
+            userId: user.id,
+            createdBy: loggedUser.id
+          }
+          await this.shopUsersRepository.save(shopUser);
+        }
+      }
 
-
-      // let shopUser: Partial<ShopUsers> = {
-      //   shopId: userDto.shopId,
-      //   createdBy: loggeduser.id
-      // }
-
-      // shopUser.userId = alreadyUserPresent ? alreadyUserPresent.id : savedUser.id;
-
-      // await this.shopUsersRepository.save(shopUser);
-
-
-      // savedUser = alreadyUserPresent ? alreadyUserPresent : savedUser
-
-      // return this.santitizeUser(savedUser);
+      return this.santitizeUser(user);
 
     } catch (err) {
       console.log(err)
-      throw new HttpException('Error in user create', 500);
+      throw { message: err.message, statusCode: err.statuCode | 500 };
     }
   }
 
-  // async findAll() {
-  //   return await this.userRepository.find();
-  // }
+  async updateDetails(updateuserDTO:UpdateUserDto, loggedUser: any) {
 
-  // findOneById(id: number) {
-  //   let user = this.userRepository.findOneBy({ id: id });
-  //   return user;
-  // }
+    delete updateuserDTO.roleId;
+    delete updateuserDTO.password;
 
-  findOneByEmail(email: string) {
-    let user = this.userRepository.findOneBy({ email: email });
+    updateuserDTO.updatedBy = loggedUser.id;
+
+    await this.userRepository.save(updateuserDTO);
+
+    return "Saved succesfully"
+  }
+
+  async updateRole(updateuserDTO:UpdateUserDto, loggedUser: any) {
+
+    delete updateuserDTO.password;
+
+    updateuserDTO.updatedBy = loggedUser.id;
+
+    await this.userRepository.save(updateuserDTO);
+
+    return "Saved succesfully"
+  }
+
+  async findAll(loggedUser:any) {
+    let where = {
+
+    }
+    return await this.userRepository.find();
+  }
+
+  findOneById(id: number) {
+    let user = this.userRepository.findOneOrFail({ where: { id: id } });
     return user;
   }
 
-  // async update(id: number, updateUserDto: UpdateUserDto) {
-  //   return `This action updates a #${id} user`;
-  // }
+  findOneByEmail(email: string) {
+    let user = this.userRepository.findOneOrFail({where:{ email: email }});
+    return user;
+  }
+
+  async findFirstUserShop(payload: any) {
+    let userShop = await this.shopUsersRepository.findOneBy(payload);
+    return userShop;
+  }
 
   // remove(id: number) {
   //   return `This action removes a #${id} user`;
   // }
 
-  // async changePassword(resetPassword: ResetPasswordDTO, loggedUser: any) {
-
-  //   let user = await this.findOneById(loggedUser.id);
-
-  //   return await this.resetPassword(user.email, resetPassword.oldPassword, resetPassword.newPassword);
-
-  // }
-
-  async resetPassword(email: string, oldPassword: string, type: string = "change password") {
-    try {
-      let user = await this.findOneByEmail(email);
-      if (!user) return { message: "Email id not present", statusCode: 404 };
-
-      if (type == "change password") {
-        let comparePassword = await bcrypt.compare(oldPassword, user.password);
-        if (!comparePassword) {
-          throw new HttpException("entered password is wrong", 400);
-        }
-      }
-      let newPassword = this.generatePassword()
-      console.log("reset Password:   ", email, "Password: ", newPassword);
-
-
-      console.log("new password: ", newPassword)
-      user.password = await this.encryptPassword(newPassword);
-
-      await this.userRepository.save(user);
-
-      return "Password reset success";
-    } catch (err) {
-      console.log(err);
-      throw err.message;
+  async changePassword(changePassDTO: ChangePassDTO, loggedUser: any) {
+    let user = await this.findOneById(loggedUser.id);
+    let comparePassword = await bcrypt.compare(changePassDTO.oldPassword, user.password);
+    if (!comparePassword) {
+      throw { statusCode: 400, message: "Old password is wrong" };
     }
+    user.password = await this.encryptPassword(changePassDTO.newPassword);
+
+    await this.userRepository.save(user);
+
+    return "Password is changed Succesfully";
   }
 
   generatePassword() {
@@ -167,7 +157,8 @@ export class UsersService {
   santitizeUser(user: User) {
 
     delete user.password;
-
+    delete user.createdAt;
+    delete user.createdBy;
     return user;
 
   }
@@ -190,4 +181,27 @@ export class UsersService {
 
     throw ({ "statuCode": 403, "message": "Forbidden Error" })
   }
+
+
+  async resetPassword(email: string, oldPassword: string, type: string = "change password") {
+    try {
+      let user = await this.findOneByEmail(email);
+      if (!user) return { message: "Email id not present", statusCode: 404 };
+
+      let newPassword = this.generatePassword()
+      console.log("reset Password:   ", email, "Password: ", newPassword);
+
+
+      console.log("new password: ", newPassword)
+
+      await this.userRepository.save(user);
+
+      return "Password reset success";
+    } catch (err) {
+      console.log(err);
+      throw err.message;
+    }
+  }
 }
+
+

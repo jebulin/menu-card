@@ -56,10 +56,12 @@ export class ShopController {
 
 
 
-  // @Get()
-  // async findAll(@Request() req: any) {
-  //   return this.shopService.findAll(req.user);
-  // }
+  @Get('/status/:status')
+  @RolesAllowed(Roles.SUPER_ADMIN)
+  @UseGuards(RolesGuard)
+  async findAll(@Param('status') status: number,@Loggeduser() loggeduser: any) {
+    return this.shopService.findAll(status, loggeduser);
+  }
 
   // @Get(':id')
   // async findOne(@Param('id') id: string) {
@@ -67,6 +69,8 @@ export class ShopController {
   // }
 
   @Post('update')
+  @RolesAllowed(Roles.SUPER_ADMIN, Roles.OWNER)
+  @UseGuards(RolesGuard)
   update(@Body() updateShopDto: UpdateShopDto, @Loggeduser() loggeduser: any) {
     return this.shopService.update(updateShopDto, loggeduser);
   }
@@ -76,8 +80,4 @@ export class ShopController {
     return this.shopService.remove(+id, loggeduser);
   }
 
-  // @Post('change-url-name')
-  // changeUrlName(@Body() urlNameDto: UrlNameDTO, @Request() req: any) {
-  //   return this.shopService.changeUrlName(urlNameDto, req.user);
-  // }
 }

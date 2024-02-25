@@ -13,30 +13,30 @@ export class ShopService {
   constructor(
     @InjectRepository(Shop) private readonly shopRepository: Repository<Shop>) { }
 
-  // async findAll(loggedUser) {
-  //   let shops = await this.shopRepository.find();
-  //   return shops;
-  // }
+  async findAll(status:number, loggedUser=null) {
+    let shops = await this.shopRepository.find({where: {status:1}});
+    return shops;
+  }
 
   // async findOne(id: number) {
   //   let shop = await this.shopRepository.findOne({ where: { id: id } });
   //   return shop;
   // }
 
-  async findOneByUrlName(name: string, loggedUser = null) {
+  async findOneByPayload(payload: any, loggedUser = null) {
     try {
-      let shop = await this.shopRepository.findOne({ where: { urlName: name } });
+      let shop = await this.shopRepository.findOne({ where: payload });
       return shop;
     } catch (err) {
-      console.log(err)
+      console.log("shop find one by payload ", err)
       throw new HttpException("Shop find error", 404);
     }
   }
 
   async verifyUrlName(verifyUrlName: VerifyUrlNameDto, loggedUser = null) {
-    let urlNamePresent = await this.findOneByUrlName(verifyUrlName.urlName);
+    let urlNamePresent = await this.findOneByPayload({ urlName: verifyUrlName.urlName });
     if (urlNamePresent) {
-      throw new NotFoundException("Urlname already taken");
+      throw { message: "Urlname already taken", statusCoce: 500 };
     }
     return { data: "available", statuCode: 200 };
   }
@@ -60,7 +60,11 @@ export class ShopService {
   async create(createShopDto: CreateShopDto, loggedUser) {
     try {
       let verifyUrlName: VerifyUrlNameDto = { urlName: createShopDto.urlName }
-      let shopPresent = await this.verifyUrlName(verifyUrlName);
+
+      await this.verifyUrlName(verifyUrlName);//directly error is thrown so no need to hanlde
+
+      //if gst is present same needs to be done 
+      // if fssai is present same needs to be done like verify urlname
 
       createShopDto.createdBy = loggedUser.id
       let shop = await this.shopRepository.save(createShopDto);
@@ -77,7 +81,7 @@ export class ShopService {
   async update(updateShopDto: UpdateShopDto, loggedUser: any) {
     try {
       delete updateShopDto.urlName
-
+      //gst and fssai check
       let shop = await this.shopRepository.findOneOrFail({ where: { id: loggedUser.shopInfo.shopId } });
       updateShopDto.updatedBy = loggedUser.id;
       this.shopRepository.merge(shop, updateShopDto);
